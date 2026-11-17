@@ -1,0 +1,12 @@
+flowchart LR
+    H[Human listener] -->|genre, mood, energy, acoustic preference| CLI[CLI input and validation]
+    CLI --> APP[Application runner]
+    CSV[(Curated songs.csv)] --> LOAD[Catalog loader]
+    LOAD --> APP
+    APP --> SCORE[Content-based scoring]
+    SCORE --> RANK[Rank by score and title]
+    RANK --> OUT[Recommendations and explanations]
+    OUT --> H
+
+    TEST[Automated pytest checks] -.->|verify ranking, explanations, input guardrails| SCORE
+    TEST -.->|verify CLI behavior| CLI

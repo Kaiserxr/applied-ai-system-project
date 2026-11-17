@@ -1,70 +1,60 @@
-# 🎧 Model Card: Music Recommender Simulation
+# Model Card: VibeMatch Music Recommender
 
-## 1. Model Name
+## Model overview
 
-**VibeMatch 1.0**
+**Name:** VibeMatch (rule-based content recommender)
+**Version:** 1.1
+**Task:** Rank a small catalog of songs for a user-supplied preference profile.
 
----
+VibeMatch is a deterministic scoring program, not a trained statistical model or generative AI. It compares catalog metadata with a listener's preferred genre, mood, target energy, and acoustic preference, then sorts tracks by score and provides feature-based explanations.
 
-## 2. Intended Use
+## Intended use and out-of-scope use
 
-This recommender is designed for classroom exploration and small-scale simulation. It generates a list of songs that best fit a user's preferred genre, mood, and activity energy level. The model assumes the user has a few clear preferences, such as wanting pop music, a happy mood, and songs that are energetic but not overwhelming.
+The system is intended for educational demonstrations of recommendation, explainability, and software testing on a small curated catalog. It is not intended to infer sensitive traits, make high-stakes decisions, or represent the full range of music or listeners.
 
-It is not intended to be a production-grade recommendation engine for real listeners. Instead, it is a transparent example of how a simple content-based recommender can convert song features into ranked suggestions.
+## Inputs, data, and outputs
 
----
+Inputs are a free-text genre, free-text mood, normalized target energy from `0.0` to `1.0`, an acoustic preference toggle, and a requested number of results. The bundled CSV has ten fictional tracks with manually supplied genre, mood, energy, tempo, valence, danceability, and acousticness values.
 
-## 3. How the Model Works
+The output is an ordered list of track metadata, numeric scores, and explanations based on the scoring rules. Scores are relative to the current catalog and should not be read as probabilities or confidence estimates.
 
-The model uses a small set of song attributes: genre, mood, energy, and acousticness. It compares those features against a user profile with a favorite genre, preferred mood, and target energy value. Each song earns points when it matches the user's genre and mood, and it also gets a score based on how similar the song's energy is to the target energy.
+## Method and design choices
 
-For example, a pop song with a happy mood and an energy value close to 0.8 will score higher than a lofi track with a calm mood and a lower energy level. The system also slightly rewards or penalizes acousticness depending on whether the user likes acoustic songs.
+Exact genre matches add 2 points, related genre names add 1, exact mood matches add 1, and energy similarity contributes up to 2.5 points. Acousticness can add or subtract 0.5 points based on the profile. Ties are resolved by title. The rules are intentionally small and visible so users can inspect how a result was produced.
 
-This is a simple content-based recommender, which means it relies on the features of the music itself rather than the behaviors of other listeners.
+## Testing and evaluation results
 
----
+The automated tests cover object-based recommendation ordering, non-empty explanations, CLI profile application and result limits, and validation of energy and result count. Run:
 
-## 4. Data
+```text
+python -m pytest -q
+```
 
-The dataset contains a small catalog of songs with fields such as title, artist, genre, mood, energy, tempo, valence, danceability, and acousticness. The catalog includes a range of genres and moods, including pop, lofi, rock, ambient, jazz, synthwave, and indie pop.
+The committed reproducible run record contains the exact test output and example CLI transcripts. These tests verify the implementation and guardrails; they do not establish that the recommendations match human taste. No formal human-subject evaluation or accuracy benchmark has been performed. A surprising behavior during testing was that the acoustic penalty can appear in the explanation even when a track still ranks highly; the reason describes one factor, not the entire ranking.
 
-The dataset is intentionally small and highly curated, which makes it easier to understand the logic but means it does not reflect the full richness of real music listening. It also leaves out large parts of musical taste, such as cultural context, lyrics, social trends, and user listening history.
+## Limitations and biases
 
----
+- The catalog is tiny, curated, fictional, and not representative of different cultures, regions, eras, or musical communities.
+- Genre and mood labels are subjective. Hand-labeled categories and fixed weights can encode the labeler's assumptions.
+- Fixed rules can reinforce a narrow profile and repeatedly favor familiar genres, creating a filter-bubble effect. There is no diversity or novelty constraint.
+- The system does not use lyrics, artist identity, listening history, popularity, context, or feedback. Energy and acousticness alone cannot capture musical fit.
+- The recommendation explanations list scoring factors, but do not claim that a person will enjoy the track.
+- Free-text preferences have no synonym or spelling normalization, and the scores are not calibrated confidence values.
 
-## 5. Strengths
+## Risks and misuse prevention
 
-This model is strong at transparent, explainable ranking. If a user says they want happy, moderately energetic pop songs, the system can clearly explain why it chose a specific track. It also works well in a demo setting because the logic is simple enough to debug and inspect.
+The principal risks are presenting a toy catalog as representative, treating its scores as objective judgments, or using the preference interface to infer personal characteristics. The program does not collect user accounts, persist listener preferences, or connect to a network service. Keep it limited to its educational purpose; do not use its rankings for consequential decisions or claim that they reflect real-world popularity or audience preference. Broader deployments would need representative data, privacy review, diversity evaluation, and ongoing human oversight.
 
-It tends to do a good job when a user has a few consistent preferences and the catalog is relatively small. In those cases, the ranking matches the intuition that songs that align with genre, mood, and energy should be prioritized.
+## Human oversight
 
----
+Users can inspect the scoring implementation, data, and per-track reasons. A human should review recommendations and the catalog labels rather than treating the numeric order as authoritative. The current test suite checks software behavior, not the cultural quality or fairness of recommendations.
 
-## 6. Limitations and Bias
+## AI collaboration reflection
 
-The system has several limitations. It does not look at lyrics, artist popularity, tempo patterns beyond the listed values, or the actual behavior of the user over time. That means it can miss songs that would be a good fit for reasons beyond the numeric features.
+An AI coding assistant was used to help make the command-line runner accept profiles, add input guardrails, and prepare reproducible documentation and tests. One suggestion accepted was exposing genre, mood, energy, acoustic preference, and result count as command-line options: it makes the same recommender straightforward to exercise with different inputs. One suggestion not adopted was introducing a hosted generative model; this was deliberately kept out because the existing task is transparent feature ranking, and an external model would add credentials, network dependence, and less reproducible outputs without addressing an identified need.
 
-Bias is also possible. Because the system strongly values genre and mood, it may over-favor a narrow musical lane and reduce diversity in the recommendations. A user who likes pop may never see excellent experimental or niche songs that do not match the selected profile as closely. This creates the same kind of filter-bubble behavior seen in more advanced recommendation systems.
+AI-generated changes were checked against the existing scorer, exercised with the bundled data, and covered by automated tests. Human review remains necessary for whether the manually assigned metadata and recommendations are musically appropriate.
 
----
+## Future work
 
-## 7. Evaluation
-
-I checked the recommender by testing a few example user profiles. For a pop, happy, high-energy profile, the top songs were the ones that matched genre and mood while staying close to the energy target. For calmer profiles, lofi or ambient songs moved upward because their energy values aligned with the user’s target.
-
-The main thing I looked for was whether the ranking was explainable and intuitive. The system passed that test: the output was easy to understand, and the top-ranked songs made sense for the profile.
-
----
-
-## 8. Future Work
-
-Future improvements could include more features such as tempo preference, danceability target, or user listening history. The model could also add diversity controls so the top recommendations do not all come from one genre or mood. A better next step would be to explain each recommendation in plain language and allow users to tune weights interactively.
-
----
-
-## 9. Personal Reflection
-
-This project helped me see that recommender systems are not magic; they are structured scoring systems that turn features into predictions. Even a simple model can feel surprisingly effective when the features are meaningful and the ranking logic is transparent.
-
-It also made me think about bias. A system that is too rigid about genre or mood may keep people stuck in a narrow comfort zone, even when a broader range of music could be enjoyable. That lesson matters for all recommendation systems, from streaming platforms to search and shopping tools.
-
+Potential improvements include a larger, responsibly sourced catalog, diversity-aware ranking, preference normalization, explicit weight tuning, and a documented human evaluation protocol. Each would require evaluation beyond the current software correctness tests.
