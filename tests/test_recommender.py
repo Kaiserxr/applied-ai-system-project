@@ -1,4 +1,5 @@
 from src.recommender import Song, UserProfile, Recommender
+from src.main import main
 
 def make_small_recommender() -> Recommender:
     songs = [
@@ -59,3 +60,44 @@ def test_explain_recommendation_returns_non_empty_string():
     explanation = rec.explain_recommendation(user, song)
     assert isinstance(explanation, str)
     assert explanation.strip() != ""
+
+
+def test_cli_uses_requested_profile_and_limits_results(capsys):
+    main(
+        [
+            "--genre",
+            "lofi",
+            "--mood",
+            "chill",
+            "--energy",
+            "0.4",
+            "--top-k",
+            "2",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert "genre=lofi, mood=chill, energy=0.40" in output
+    assert "Midnight Coding" in output
+    assert "Library Rain" in output
+    assert "Sunrise City" not in output
+
+
+def test_cli_rejects_out_of_range_energy(capsys):
+    import pytest
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--energy", "1.5"])
+
+    assert exc_info.value.code == 2
+    assert "--energy must be between 0.0 and 1.0" in capsys.readouterr().err
+
+
+def test_cli_rejects_non_positive_result_count(capsys):
+    import pytest
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--top-k", "0"])
+
+    assert exc_info.value.code == 2
+    assert "--top-k must be at least 1" in capsys.readouterr().err
